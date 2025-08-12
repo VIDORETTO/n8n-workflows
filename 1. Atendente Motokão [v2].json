@@ -1,0 +1,1404 @@
+{
+  "name": "1. Atendente Motokão [v2]",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.message_type }}",
+              "rightValue": "incoming",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "id": "149f8496-42a2-44d8-85ce-27f4f8dd76d7"
+            },
+            {
+              "leftValue": "={{ $json.body.conversation?.labels }}",
+              "rightValue": "agente-off",
+              "operator": {
+                "type": "array",
+                "operation": "notContains",
+                "rightType": "any"
+              },
+              "id": "a36d3a6e-779d-46e1-a533-fe4ffe772bce"
+            },
+            {
+              "id": "f215f904-dbfd-49e9-986e-4faf0e981d64",
+              "leftValue": "={{ $json.body.conversation?.labels }}",
+              "rightValue": "mecanico",
+              "operator": {
+                "type": "array",
+                "operation": "notContains",
+                "rightType": "any"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "440b19fa-3bb4-457f-b76f-5c39ba045b2b",
+      "name": "🔍 Filtrar Mensagens",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -2896,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "={{ $json.body.conversation.id }}_{{ $json.body.id }}",
+        "options": {}
+      },
+      "id": "bf697bc2-8c29-4b16-8619-410a3d5598b3",
+      "name": "⚡ Cache Redis Check",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -2208,
+        224
+      ],
+      "credentials": {
+        "redis": {
+          "id": "LEzG1SL5E566nY65",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.value }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isEmpty"
+              },
+              "id": "78adc0f8-c25a-4b59-aa85-67b3492f1874"
+            },
+            {
+              "id": "f0158bac-2764-4160-8332-7e59c3516339",
+              "leftValue": "={{ $('⚡ Cache Redis Check').item.json.value }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "881a2586-53f0-4e3a-a559-6caa77a68fe8",
+      "name": "🆕 Nova Mensagem?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1984,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ $json.body.conversation.id }}_{{ $json.body.id }}",
+        "value": "processed",
+        "expire": true,
+        "ttl": 3600
+      },
+      "id": "020a1d7d-87bb-4b30-a917-71358b18fab8",
+      "name": "✅ Marcar Processado",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -1760,
+        208
+      ],
+      "credentials": {
+        "redis": {
+          "id": "LEzG1SL5E566nY65",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "motokao_message_queue",
+          "mode": "list"
+        },
+        "dataMode": "defineBelow",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "id_mensagem",
+              "value": "={{ $json.id_mensagem }}"
+            },
+            {
+              "column": "id_conta",
+              "value": "={{ $json.id_conta }}"
+            },
+            {
+              "column": "id_conversa",
+              "value": "={{ $json.id_conversa }}"
+            },
+            {
+              "column": "telefone",
+              "value": "={{ $json.telefone }}"
+            },
+            {
+              "column": "nome_cliente",
+              "value": "={{ $json.nome_cliente }}"
+            },
+            {
+              "column": "mensagem",
+              "value": "={{ $json.mensagem }}"
+            },
+            {
+              "column": "mensagem_de_audio",
+              "value": "={{ $json.mensagem_de_audio }}"
+            },
+            {
+              "column": "audio_url",
+              "value": "={{ $json.audio_url || null }}"
+            },
+            {
+              "column": "timestamp",
+              "value": "={{ $json.timestamp }}"
+            },
+            {
+              "column": "etiquetas",
+              "value": "={{ $json.etiquetas }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b3747e7f-a21a-466d-9a29-315a1b5048ed",
+      "name": "📥 Enfileirar Mensagem",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        -992,
+        48
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SeOzgESQk3VyCV02",
+          "name": "Supabase Motokão"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 10,
+        "unit": "seconds"
+      },
+      "id": "f237dfb2-28b5-4182-b1da-203f02f6ecf9",
+      "name": "⏳ Aguardar Fila",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        48
+      ],
+      "webhookId": "74568c9b-5102-48de-b494-be330a24a069"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "motokao_message_queue",
+          "mode": "list"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "telefone",
+              "value": "={{ $json.telefone }}"
+            }
+          ]
+        },
+        "sort": {
+          "values": [
+            {
+              "column": "timestamp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6ac10f71-7cab-44ea-b33b-e8c13b606c71",
+      "name": "📋 Buscar Fila",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        -608,
+        48
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SeOzgESQk3VyCV02",
+          "name": "Supabase Motokão"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "deleteTable",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "motokao_message_queue",
+          "mode": "list"
+        },
+        "deleteCommand": "delete",
+        "where": {
+          "values": [
+            {
+              "column": "telefone",
+              "value": "={{ $json.telefone }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "48ae88da-666e-476b-8221-df6043f97180",
+      "name": "🗑️ Limpar Fila",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        48
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SeOzgESQk3VyCV02",
+          "name": "Supabase Motokão"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chatwoot.motokaovirtual.com.br/api/v1/accounts/{{ $('📋 Extrair Informações').item.json.id_conta }}/conversations/{{ $('📋 Extrair Informações').item.json.id_conversa }}/toggle_typing_status",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "typing_status",
+              "value": "on"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "2de7f08f-447f-4550-be5a-6ec1615f0311",
+      "name": "⌨️ Status Digitando",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        96,
+        208
+      ],
+      "credentials": {
+        "chatwootApi": {
+          "id": "zmNL6YOUO92XXR5V",
+          "name": "ChatWoot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "mensagem_final",
+              "stringValue": "={{ \n(() => {\n  const t = (v) => (v ?? '').toString().trim();\n\n  // Sempre existe\n  const info = $('📋 Extrair Informações').first().json || {};\n  const isAudio = !!info.mensagem_de_audio; // vem do Extrair Info\n\n  // Se NÃO for áudio, tenta pegar só a ÚLTIMA mensagem da fila\n  if (!isAudio) {\n    try {\n      const fila = $('🎯 Verificar Posição na Fila').all();\n      if (fila.length) {\n        const ult = fila[fila.length - 1];\n        const msg = t(ult.json?.mensagem);\n        if (msg) return msg;\n      }\n    } catch (e) { /* nó não executou? tudo bem */ }\n  }\n\n  // Se for áudio (ou texto da fila não veio), tenta a transcrição\n  try {\n    const tx = $('Transcrever audio').first(); // nome exato do nó\n    const txText = t(tx?.json?.text);\n    if (txText) return txText;\n  } catch (e) { /* nó não executou? segue o baile */ }\n\n  // Fallback: conteúdo bruto\n  return t(info.mensagem);\n})()\n}}\n"
+            },
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "id": "d525663d-8162-40f9-9891-2b8d80035eef",
+      "name": "📝 Preparar Mensagem",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        320,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('📋 Extrair Informações').item.json.telefone }}",
+        "tableName": "motokao_chat_memory"
+      },
+      "id": "4b8df94a-26ae-4cc3-9908-9022db1c5091",
+      "name": "🧠 Memória de Conversa",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1,
+      "position": [
+        432,
+        448
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SeOzgESQk3VyCV02",
+          "name": "Supabase Motokão"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "=**Ferramenta de Análise e Estratégia Técnica.** Use esta ferramenta como seu passo ZERO para qualquer solicitação que não seja trivial. Sua função é modelar seu raciocínio de especialista.\n\n**CENÁRIOS DE USO OBRIGATÓRIO:**\n- **Consultas Multi-Produto:** Cliente pede mais de um item.\n- **Análise de Compatibilidade Cruzada:** Peça vs. Moto, Peça vs. Peça.\n- **Dedução de Intenção:** Quando o pedido é um uso (ex: \"pneu pra fazer trilha\") e não um produto específico.\n- **Planejamento de Busca:** Antes de qualquer busca, para definir os termos exatos a serem usados.\n\n**PROTOCOLO DE SAÍDA OBRIGATÓRIO:**\nSua saída DEVE seguir estritamente o seguinte formato de Markdown:\n\n**Análise:** [Aqui você descreve sua interpretação da necessidade real e completa do cliente.]\n**Plano de Ação:**\n1.  **Passo 1:** [Descreva a primeira ação que você vai tomar, ex: 'Usar a ferramenta X para buscar Y'.]\n2.  **Passo 2:** [Descreva a segunda ação, se houver.]\n3.  **...**\n**Validação:** [Descreva o que você precisa confirmar ou a hipótese que está testando com seu plano.]\n\n**Exemplo:**\n**Análise:** O cliente precisa do kit completo de transmissão (coroa, corrente, pinhão) para a moto Honda Bros 160, ano 2020.\n**Plano de Ação:**\n1.  **Passo 1:** Usar `buscar_produtos_motokao` com o termo \"coroa Bros 160 2020\".\n2.  **Passo 2:** Usar `buscar_produtos_motokao` com o termo \"corrente Bros 160 2020\".\n3.  **Passo 3:** Usar `buscar_produtos_motokao` com o termo \"pinhão Bros 160 2020\".\n4.  **Passo 4:** Consolidar os resultados e apresentar ao cliente.\n**Validação:** Preciso confirmar a disponibilidade e o preço de cada um dos três componentes para o modelo e ano exatos."
+      },
+      "id": "a3cc2579-4a69-4923-bffe-0edb51dfda02",
+      "name": "🤔 Ferramenta de Raciocínio",
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chatwoot.motokaovirtual.com.br/api/v1/accounts/{{ $('📋 Extrair Informações').item.json.id_conta }}/conversations/{{ $('📋 Extrair Informações').item.json.id_conversa }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $json.content }}"
+            },
+            {
+              "name": "message_type",
+              "value": "outgoing"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cf975af3-e42f-48f3-9d64-4e2c43920d8b",
+      "name": "📤 Enviar Mensagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1200,
+        208
+      ],
+      "credentials": {
+        "chatwootApi": {
+          "id": "zmNL6YOUO92XXR5V",
+          "name": "ChatWoot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "✅ Mensagem Motokão processada com sucesso!",
+        "options": {}
+      },
+      "id": "75bdd241-54bf-4bbd-8192-a4c27bce9c4c",
+      "name": "✅ Resposta Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "003c4b22-55e7-4897-a3e0-c8e1a3ad5540",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -3136,
+        256
+      ],
+      "id": "7e097cdb-556e-42a5-85a6-b1b8b0da9201",
+      "name": "🎯 Webhook Chatwoot",
+      "webhookId": "003c4b22-55e7-4897-a3e0-c8e1a3ad5540"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.mensagem_final }}",
+        "options": {
+          "systemMessage": "=HOJE É: {{ $now.format('FFFF') }}\n\n# AGENTE DE ATENDIMENTO **Motokão**\n**Função:** Assistente virtual para atendimento e suporte técnico  \n**Objetivo Primário:**\n- Responder perguntas sobre produtos e serviços. Apenas assuntos relacionados à empresa.\n- Consultar bancos de dados em tempo real.\n- Escalar casos complexos para humanos.\n**Tom:** Amigável, profissional, empático e direto, sem enrolações. Evitar jargões técnicos nas explicações; manter títulos técnicos conforme o catálogo.\n\n## 🏁 CONTEXTO OPERACIONAL\n- **Especialização / Escopo:**\n  - Manutenção **preventiva** (antes da falha) e **corretiva** (pós-falha).\n  - **Especialização:** atendemos motos **100–400cc**, qualquer moto fora dessa faixa precisamos consultar com o mecanico.   \n  - **Horário de funcionamento:** Segunda a sexta das **7:30h às 18h**; **sábado e domingo não abrimos**.\n\n- **Limites de Atuação:**  \n  - ❌ Não dar instruções mecânicas (o assistente entende o tema, mas não fornece passo a passo técnico).  \n  - ❌ Não diagnosticar problemas sem dados suficientes — peça para trazer a moto para analisarmos melhor.  \n  - ❌ Não é necessário revelar o nosso SKU para o cliente.  \n  - ❌ Não é necessário informar a quantidade de estoque disponível.  \n  - ❌ Não insira muitos assuntos na conversa; foque apenas no que o cliente precisa, um de cada vez.  \n  - ❌ Não dê valores de mão de obra; diga que vai verificar com o responsável e transfira para um humano.\n\n### 🚦 Fluxo de Atendimento — Chain of Thought\n\n1) Saudação\n- \"Olá! Sou o assistente do Motokão 👋 Como posso te ajudar?\"\n\n2) Quando o cliente pedir preço\n- Pergunte: \"Você precisa só da peça ou já com instalação?\"\n- Capture dados essenciais (se ainda não tiver): \"Qual o modelo da moto e o ano?\"\n- Reforce com sutileza: \"A instalação aqui no Motokão garante qualidade e garantia do serviço e da peça.\"\n\n3) Se for **só a peça**\n- [Consultar banco de dados \"produtos\" e confirmar modelo/ano exatos]\n- Se encontrado: \"Encontrei **[PEÇA]** para **[MOTO/ANO]** por **R$ [PREÇO]**.\"\n- Complementos úteis:\n  - (Se houver variações): \"Temos essas opções: [VARIAÇÕES QUE FIZEREM SENTIDO, NÃO FALE DE PEÇAS ALEATÓRIAS].\"\n\n4) Se for **peça + instalação**\n- \"Para te passar o valor instalado preciso confirmar a mão de obra com a oficina. Vou te transferir agora para um atendente.\" [Transferir para humano]\n\n5) Encerramento\n- \"Posso te ajudar em mais alguma coisa?\"\n\n#### Regras rápidas (evita erro)\n- Não invente preço/estoque. Se houver dúvida, peça confirmação do modelo/ano e código/SKU.\n- Sempre que possível, envie o link do anúncio (Mercado Livre) ou código interno para o cliente conferir.\n- Se o cliente estiver indeciso, ofereça reservar por tempo limitado (conforme política da loja) ou avisar quando repor.\n\n\n### Políticas de Escalonamento  \n- Reclamação de serviço feito por nós.  \n- Falha na consulta (tente novamente e escale na 2ª falha).  \n- Pedido de orçamento complexo, com muitas peças ou envolvendo mão de obra.\n\n## ⚙️ FERRAMENTAS OPERACIONAIS\n### 1. `faq` (Banco de Dados Supabase)\n- **Uso:** Consultar para perguntas gerais.\n\n### 2. `produtos` (Banco de Dados Supabase)\n- **Uso:** Acione ao detectar interesse em **saber mais sobre uma peça** (detalhes, compatibilidade, preço).\n\n## MODO DE USAR AS FERRAMENTAS\n### 1. `faq`  \nUse para perguntas gerais. Sempre que algo não estiver no system prompt ou no histórico da conversa, use essa ferramenta para confirmar detalhes sobre a dúvida do cliente; caso não encontre, **faça a transferência para um humano**.\n\n### 2. `produtos` — Fluxo de uso da ferramenta\n1. **Entender o pedido do cliente**  \n   - Identifique a peça solicitada.  \n   - Liste possíveis **sinônimos, abreviações e descrições equivalentes**.\n2. **Analisar a motocicleta**  \n   - Confirme **modelo** e **ano** exatos informados pelo cliente.  \n   - Caso o ano não seja informado, **pergunte antes de prosseguir**.\n3. **Pesquisar no catálogo**  \n   - Utilize **sinônimos + modelo + ano** como filtros.  \n   - Priorize correspondências **exatas de ano**; se não houver, verifique **anos adjacentes** (ex.: 2022/2024 quando o cliente busca 2023).\n4. **Quando não houver o ano exato**  \n   > “Encontrei a peça **X** para sua moto. Mas preciso confirmar com o mecânico se ela serve no **[ANO]** da sua moto.”\n5. **Padrão de título de produto**  \n   **NOME DA PEÇA [às vezes com abreviação] + MOTO DE APLICAÇÃO (ANO) + OUTRAS MOTOS COMPATÍVEIS + MARCA [às vezes indisponível]**  \n   **Exemplo:** `KIT RELAÇÃO CG160 16...22/BROS160 18...22 DID`  \n   *Lembrete:* a peça necessária pode estar listada como compatível com outros modelos (ex.: pedido para Bros 160 pode aparecer na descrição da CG 160).\n\n## Políticas da empresa\n- **Entregas:** Não fazemos **entregas pela loja física dentro da cidade**. **Se o cliente morar em outra cidade podemos fazer o envio através de transportadora ou Mercado Livre**.  \n- **Atendimento:** Não fazemos agendamento; trabalhamos por **ordem de chegada**.  \n- **Instalação de peças:** Não instalamos peças que **não** foram compradas com a gente.\n- **Escopo de serviços:** Não realizamos serviços em motos de alta cilindrada (**acima de 400cc**) nem em motos importadas de difícil acesso a peças.\n- **Pagamentos (balcão presencial):**\n  - Parcelamos compras no **cartão em até 3x sem juros** (balcão).\n  - **Desconto:** 5% no **dinheiro** à vista ou 3% no **Pix** (somente para pagamentos no balcão).\n\n### Política de Peças\n**Posição oficial:** Trabalhamos **exclusivamente com peças paralelas  de alta qualidade**. São opções de **custo consideravelmente menor** e **qualidade muito semelhante** às originais. Selecionamos **marcas confiáveis** para evitar dor de cabeça para o cliente e empresa.\n\n**O que o agente deve fazer**\n- ✅ Dizer que só oferecemos **paralelas de alta qualidade**.\n- ✅ Destacar **bom custo-benefício** e **qualidade equivalente**.\n- ✅ Reforçar que **somos criteriosos na escolha das marcas**.\n\n**O que o agente não deve fazer**\n- ❌ **Não** oferecer peças originais nem sugerir que conseguimos sob demanda.\n- ❌ **Não** prometer que a peça é “idêntica à original”; prefira “qualidade **muito semelhante**/equivalente”.\n- ❌ **Não** citar marcas específicas se não estiverem no contexto/dados.\n\n**Frases modelo (use e adapte)**\n- “Trabalhamos **somente com peças paralelas de alta qualidade**, com **custo bem mais baixo** e **qualidade muito semelhante** à original.”\n- “Selecionamos **apenas marcas confiáveis** para garantir durabilidade e evitar problemas futuros para o cliente e empresa.”\n- “Não oferecemos peça original; nossa **linha é paralela premium**, com **excelente custo-benefício**.”\n\n**Se o cliente pedir peça original**\n- Responder: “No momento trabalhamos **exclusivamente com peças paralelas de alta qualidade**. Posso verificar a opção equivalente para o seu modelo?”\n\n- **Garantia:** segue a legislação vigente e cobre apenas **defeitos de fabricação**, não por mal uso.\n- **Política de vendas e trocas:**\n  - Não vendemos **peças usadas**.\n  - Não realizamos **devolução de peças** após instalação.\n  - **Troca** de produtos deve ser transferido para um humano.\n- **Horário de funcionamento:** Segunda a sexta das **7:30h às 18h**; **sábado e domingo não abrimos**.\n- **Encomendas:** não trabalhamos com encomendas sem **pagamento antecipado**.\n- **Serviços não realizados:** não fazemos **pintura, funilaria ou envelopamento**.\n- **Execução dos serviços:** manutenção preventiva e corretiva realizadas apenas em nossa **oficina própria**.\n- **Reserva de peças:** atendimento no balcão por ordem de chegada; **sem reserva**.\n\n### Práticas internas da empresa\n- **Antes de passar o valor de uma peça**, pergunte ao cliente se ele **quer apenas a peça** ou **a peça instalada**.  \n  - Se quiser **só a peça**: passe o **preço**.  \n  - Se quiser **instalada**: **transfira para um humano**.\n  - Se o cliente já tiver informado o modelo da moto, porém sem o ano, enfatize que você precisa do ano para fazer melhor a consulta."
+        }
+      },
+      "id": "9f4a8330-3750-4e30-9f0d-203abfaab64a",
+      "name": "🤖 Agente Motokão Principal",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        576,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pega os dados da mensagem que disparou ESTA execução do workflow.\n// É a nossa referência para saber qual mensagem estamos processando.\nconst currentMessage = $('📋 Extrair Informações').first().json;\n\n// Pega TODOS os itens que o nó anterior (Buscar Fila) retornou.\n// Estes são os itens da fila para o mesmo número de telefone.\nconst queueMessages = $input.all();\n\n// --- INÍCIO DA VERIFICAÇÃO DE ROBUSTEZ ---\n// 1. Verificar se a fila retornou vazia.\n// Se isso acontecer, algo está errado na query do nó \"Buscar Fila\".\nif (queueMessages.length === 0) {\n  // Não há nada na fila, então não há o que processar. Paramos aqui.\n  return [];\n}\n// --- FIM DA VERIFICAÇÃO DE ROBUSTEZ ---\n\n// Pega a ÚLTIMA mensagem da lista retornada pela fila.\n// Como a query está ordenada por 'timestamp', esta é a mais recente.\nconst lastMessageInQueue = queueMessages[queueMessages.length - 1].json;\n\n// Pega o ID da mensagem original e o ID da última mensagem na fila.\n// Usamos .toString() para garantir que não haverá erro de tipo (ex: 123 vs \"123\").\nconst currentMessageId = currentMessage.id_mensagem.toString();\nconst lastMessageId = lastMessageInQueue.id_mensagem.toString();\n\n// Compara os IDs.\n// Se o ID da nossa mensagem for o mesmo da última na fila, nós continuamos.\nif (currentMessageId === lastMessageId) {\n  // É a última mensagem! Retorna todos os itens da fila para o próximo nó.\n  return queueMessages;\n} else {\n  // Não é a última mensagem. O fluxo para esta execução deve terminar aqui.\n  // Retornamos um array vazio para não passar dados adiante.\n  return [];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -416,
+        48
+      ],
+      "id": "a8ccff7c-3fd0-4490-b9ca-bbbd593face6",
+      "name": "🎯 Verificar Posição na Fila"
+    },
+    {
+      "parameters": {
+        "model": "text-embedding-ada-002",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        544,
+        608
+      ],
+      "id": "0f9a708d-c027-4a2f-83dc-3a8e65e12475",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "aGijCClKIFF3AhEo",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "text-embedding-ada-002",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        864,
+        608
+      ],
+      "id": "7b060625-bad3-47dc-a39d-d51239d04a51",
+      "name": "Embeddings OpenAI1",
+      "credentials": {
+        "openAiApi": {
+          "id": "aGijCClKIFF3AhEo",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $('📋 Extrair Informações').item.json.audio_url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -800,
+        208
+      ],
+      "id": "7f9418fb-dba2-480c-9367-cfe6d3678358",
+      "name": "Download áudio",
+      "credentials": {
+        "chatwootApi": {
+          "id": "zmNL6YOUO92XXR5V",
+          "name": "ChatWoot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {
+          "language": "pt"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -416,
+        208
+      ],
+      "id": "93c77ed8-0a18-4218-a383-2e2726917bc4",
+      "name": "Transcrever audio",
+      "credentials": {
+        "openAiApi": {
+          "id": "aGijCClKIFF3AhEo",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.mensagem }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    },
+                    "id": "1382cd26-d96e-4c55-99dd-2ca305ffe82e"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Texto"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "b9a7e16f-b6e4-45d7-846d-92dcb3117593",
+                    "leftValue": "={{ $json.mensagem_de_audio }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Áudio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "468e131d-592c-4517-ae29-1df16201667d",
+                    "leftValue": "=",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Imagem"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1296,
+        192
+      ],
+      "id": "ea5bfb6c-e54b-403a-8fba-57157c384e14",
+      "name": "Tipo de mensagem"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pega a resposta do agente de IA do nó anterior\nconst textoAgente = $('🤖 Agente Motokão Principal').item.json.output;\n\n// Pega os dados de identificação do primeiro nó do fluxo\nconst infoMensagem = $('📋 Extrair Informações').item.json;\n\n// --- Início da Formatação ---\n// Substitui **palavra** por *palavra*\nlet textoFormatado = textoAgente.replace(/\\*\\*(.*?)\\*\\*/g, '*$1*');\n// Remove o caractere '#'\ntextoFormatado = textoFormatado.replace(/#/g, '');\n// --- Fim da Formatação ---\n\n// Retorna um novo objeto com TUDO o que o próximo nó precisa\nreturn {\n  content: textoFormatado,\n  id_conta: infoMensagem.id_conta,\n  id_conversa: infoMensagem.id_conversa\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        208
+      ],
+      "id": "ac0f28d8-96f7-4502-b8bc-5e76fdcc7223",
+      "name": "Formatador de texto"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrair informações da mensagem\nconst message = $('🔍 Filtrar Mensagens').first().json.body;\nconst content = message.content || '';\nconst hasAudio = message.attachments?.[0]?.file_type === 'audio';\nconst audioUrl = message.attachments?.[0]?.data_url;\n\nconst SEU_TELEGRAM_CHAT_ID = \"991616326\";\nconst URL_BASE_CHATWOOT = \"https://chatwoot.motokaovirtual.com.br\";\n\nreturn {\n  id_mensagem: message.id,\n  id_conta: message.account?.id,\n  id_conversa: message.conversation.id,\n  telefone: message.sender?.phone_number,\n  nome_cliente: message.sender?.name || 'Cliente',\n  mensagem: content,\n  mensagem_de_audio: hasAudio,\n  audio_url: audioUrl,\n  timestamp: message.created_at,\n  etiquetas: message.conversation?.labels || [],\n  telegram_chat_id: SEU_TELEGRAM_CHAT_ID,\n  url_chatwoot: URL_BASE_CHATWOOT\n};"
+      },
+      "id": "9de8b87a-5f89-4f9d-b472-884fcf064a7c",
+      "name": "📋 Extrair Informações",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1520,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Use esta ferramenta OBIGATORIAMENTE como sua única opção para transferir o atendimento para um agente humano. Chame esta ferramenta SEMPRE que o cliente pedir para falar com uma pessoa, expressar frustração (ex: \"você não entende\"), reclamar de um produto/serviço, ou se a solicitação for complexa demais para as outras ferramentas.",
+        "workflowId": {
+          "__rl": true,
+          "value": "DeE5G6KVYJ2j7F2X",
+          "mode": "list",
+          "cachedResultName": "Transferir para um humano (Motokão)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "telefone": "={{ $('📋 Extrair Informações').item.json.telefone }}",
+            "nome": "={{ $('📋 Extrair Informações').item.json.nome_cliente }}",
+            "ultima_mensagem": "={{ $('📝 Preparar Mensagem').item.json.mensagem_final }}",
+            "id_conta": "={{ $('📋 Extrair Informações').item.json.id_conta }}",
+            "id_conversa": "={{ $('📋 Extrair Informações').item.json.id_conversa }}",
+            "telegram_chat_id": "={{ $('📋 Extrair Informações').item.json.telegram_chat_id }}\n",
+            "url_chatwoot": "={{ $('📋 Extrair Informações').item.json.url_chatwoot }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "telefone",
+              "displayName": "telefone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "nome",
+              "displayName": "nome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "ultima_mensagem",
+              "displayName": "ultima_mensagem",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "id_conta",
+              "displayName": "id_conta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "id_conversa",
+              "displayName": "id_conversa",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "telegram_chat_id",
+              "displayName": "telegram_chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "url_chatwoot",
+              "displayName": "url_chatwoot",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1376,
+        448
+      ],
+      "id": "10983d5a-b1a3-45a4-b633-742c48919506",
+      "name": "Escalar humano"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "faq",
+        "toolDescription": "=Use esta ferramenta para responder perguntas gerais sobre a empresa, como horário de funcionamento, localização, formas de pagamento, garantia e serviços oferecidos. NÃO use para buscar produtos ou peças.",
+        "tableName": {
+          "__rl": true,
+          "value": "faq",
+          "mode": "list",
+          "cachedResultName": "faq"
+        },
+        "topK": 8,
+        "includeDocumentMetadata": false,
+        "options": {
+          "queryName": "match_faq"
+        }
+      },
+      "id": "a87906bd-89f4-42e1-8b2a-12d87c6a89f3",
+      "name": "faq",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        864,
+        448
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "F77ClZTv5EStruN4",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "produtos",
+        "toolDescription": "=Use esta ferramenta para consultar informações sobre produtos, peças, SKUs, preços e estoque da Motokão. SEMPRE use esta ferramenta quando a pergunta do cliente for sobre a disponibilidade, compatibilidade ou preço de um item. NÃO use para perguntas gerais sobre a empresa.",
+        "tableName": {
+          "__rl": true,
+          "value": "produtos",
+          "mode": "list",
+          "cachedResultName": "produtos"
+        },
+        "topK": 8,
+        "includeDocumentMetadata": false,
+        "options": {
+          "queryName": "match_produtos"
+        }
+      },
+      "id": "f13f834c-f4fb-4179-9ebf-e852f776ec1a",
+      "name": "produtos",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        544,
+        448
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "F77ClZTv5EStruN4",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5",
+          "mode": "list",
+          "cachedResultName": "gpt-5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        272,
+        448
+      ],
+      "id": "437e9509-a565-4ed5-9cc2-ee3edf69b9ed",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "aGijCClKIFF3AhEo",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ff2cc635-0071-41de-ab27-fbcf7d026386",
+              "leftValue": "={{ $json.body.conversation.meta.assignee?.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "daf23cb1-5afe-4115-a7f7-bc02d2d02c65",
+              "leftValue": "={{ $json.body.conversation.meta.assignee?.id }}",
+              "rightValue": 3,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2688,
+        240
+      ],
+      "id": "fe8eeae5-c798-45a7-88a0-fba18c777b49",
+      "name": "🤖 Já tem agente?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chatwoot.motokaovirtual.com.br/api/v1/accounts/{{ $json.body.account.id }}/conversations/{{ $json.body.conversation.id }}/assignments",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"assignee_id\": 3\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2448,
+        224
+      ],
+      "id": "10ba30ae-1210-4ad8-a36e-618e877b32e7",
+      "name": "➕ Atribuir à IA",
+      "credentials": {
+        "chatwootApi": {
+          "id": "zmNL6YOUO92XXR5V",
+          "name": "ChatWoot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "deepseek/deepseek-r1-0528",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        112,
+        448
+      ],
+      "id": "802f4f4c-c5a7-4c7b-a3d0-c6b20be5e9ee",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "iI0Ch2Otn0ylKFNx",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -2688,
+        400
+      ],
+      "id": "5aa370b5-0ad9-4d13-8290-ad40abdca36e",
+      "name": "Sem Próximo Passo 1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -1744,
+        384
+      ],
+      "id": "2bdef139-ec98-4427-b80a-92184b8eeeb7",
+      "name": "Sem Próximo Passo  2"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const b = item.binary?.data;\n  if (!b) throw new Error('Sem binário em \"data\"');\n  // Força metadados reconhecíveis pela OpenAI\n  b.fileName = b.fileName || 'audio.ogg';\n  b.mimeType = 'audio/ogg';\n  return item;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -608,
+        208
+      ],
+      "id": "808c220f-1daa-4779-b903-fdc4778bcbe7",
+      "name": "Code"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "🔍 Filtrar Mensagens": {
+      "main": [
+        [
+          {
+            "node": "🤖 Já tem agente?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sem Próximo Passo 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚡ Cache Redis Check": {
+      "main": [
+        [
+          {
+            "node": "🆕 Nova Mensagem?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🆕 Nova Mensagem?": {
+      "main": [
+        [
+          {
+            "node": "✅ Marcar Processado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sem Próximo Passo  2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✅ Marcar Processado": {
+      "main": [
+        [
+          {
+            "node": "📋 Extrair Informações",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📥 Enfileirar Mensagem": {
+      "main": [
+        [
+          {
+            "node": "⏳ Aguardar Fila",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏳ Aguardar Fila": {
+      "main": [
+        [
+          {
+            "node": "📋 Buscar Fila",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📋 Buscar Fila": {
+      "main": [
+        [
+          {
+            "node": "🎯 Verificar Posição na Fila",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🗑️ Limpar Fila": {
+      "main": [
+        [
+          {
+            "node": "⌨️ Status Digitando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⌨️ Status Digitando": {
+      "main": [
+        [
+          {
+            "node": "📝 Preparar Mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Preparar Mensagem": {
+      "main": [
+        [
+          {
+            "node": "🤖 Agente Motokão Principal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 Memória de Conversa": {
+      "ai_memory": [
+        [
+          {
+            "node": "🤖 Agente Motokão Principal",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤔 Ferramenta de Raciocínio": {
+      "ai_tool": [
+        [
+          {
+            "node": "🤖 Agente Motokão Principal",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📤 Enviar Mensagem": {
+      "main": [
+        [
+          {
+            "node": "✅ Resposta Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎯 Webhook Chatwoot": {
+      "main": [
+        [
+          {
+            "node": "🔍 Filtrar Mensagens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 Agente Motokão Principal": {
+      "main": [
+        [
+          {
+            "node": "Formatador de texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎯 Verificar Posição na Fila": {
+      "main": [
+        [
+          {
+            "node": "🗑️ Limpar Fila",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "produtos",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "faq",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download áudio": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcrever audio": {
+      "main": [
+        [
+          {
+            "node": "📝 Preparar Mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tipo de mensagem": {
+      "main": [
+        [
+          {
+            "node": "📥 Enfileirar Mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download áudio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Formatador de texto": {
+      "main": [
+        [
+          {
+            "node": "📤 Enviar Mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📋 Extrair Informações": {
+      "main": [
+        [
+          {
+            "node": "Tipo de mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalar humano": {
+      "ai_tool": [
+        [
+          {
+            "node": "🤖 Agente Motokão Principal",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "faq": {
+      "ai_tool": [
+        [
+          {
+            "node": "🤖 Agente Motokão Principal",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "produtos": {
+      "ai_tool": [
+        [
+          {
+            "node": "🤖 Agente Motokão Principal",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "🤖 Agente Motokão Principal",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 Já tem agente?": {
+      "main": [
+        [
+          {
+            "node": "➕ Atribuir à IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "➕ Atribuir à IA": {
+      "main": [
+        [
+          {
+            "node": "⚡ Cache Redis Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Sem Próximo Passo 1": {
+      "main": [
+        []
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Transcrever audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "75138b2f-a33b-426d-8b9c-b7435fb06c7b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cc8408cceae7fa0f8b71136a7f42ebc73548c779275a4018abe7f6d69be1e4cd"
+  },
+  "id": "VVSZiUFHTGpppso9",
+  "tags": []
+}
